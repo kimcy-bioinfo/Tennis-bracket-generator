@@ -52,7 +52,7 @@
       <div class="card pad">
         <div style="margin-top:12px">
           <div>
-            <label for="numMembers">구성원 수 (4–20명)</label>
+            <label for="numMembers">멤버 수 (4–20명)</label>
             <input id="numMembers" type="number" min="4" max="20" placeholder="예: 10"/>
           </div>
         </div>
@@ -69,7 +69,7 @@
           </div>
         </div>
         <div style="margin-top:12px">
-          <label for="playerNames">선수 이름 </label>
+          <label for="playerNames">멤버 이름 </label>
           <div class="footer">(쉼표로 구분하여 입력 또는 빈칸으로 두어 선수 1..N 자동 생성)</div>
           <textarea id="playerNames" placeholder="선수 1, 선수 2, ..."></textarea>
         </div>
@@ -78,7 +78,7 @@
           <button class="secondary" id="btnClear">입력 초기화</button>
         </div>
         <div id="errorMessage" class="err"></div>
-        <div class="footer">힌트: “선수 12”처럼 숫자가 포함된 이름은 정렬에 유리합니다.</div>
+     // <div class="footer">힌트: “선수 12”처럼 숫자가 포함된 이름은 정렬에 유리합니다.</div>
       </div>
 
       <!-- 결과 -->
@@ -147,7 +147,7 @@
     if(namesRaw){
       players = namesRaw.split(',').map(s=>s.trim()).filter(s=>s);
       if(players.length !== numMembers){
-        errEl.textContent = '입력된 선수 수가 구성원 수와 일치하지 않습니다.';
+        errEl.textContent = '입력된 멤버 이름의 수가 멤버 수와 일치하지 않습니다.';
         return;
       }
     }else{
@@ -224,7 +224,7 @@
       wrap.className = 'section';
       const title = document.createElement('div');
       title.className = 'section-title';
-      title.innerHTML = `세트 ${setIdx} 결과`;
+      title.innerHTML = `세트 ${setIdx}`;
       wrap.appendChild(title);
 
       const tbl = document.createElement('table');
@@ -345,6 +345,7 @@
 </script>
 </body>
 </html>
+
 
 
 
