@@ -315,9 +315,15 @@
 
       byId('output').appendChild(renderSet(s, courtPairsFlat, restingThisSet));
 
-      const nextQueue = [];
+      /* const nextQueue = [];
       restingThisSet.forEach(p=>{ if(!nextQueue.includes(p)) nextQueue.push(p); });
       restQueue.forEach(p=>{ if(!nextQueue.includes(p)) nextQueue.push(p); });
+      restQueue = nextQueue; */
+
+      const shuffledRest = shuffle([...restingThisSet]); // 이번 세트 휴식 선수 랜덤화
+      const nextQueue = [];
+      shuffledRest.forEach(p => { if(!nextQueue.includes(p)) nextQueue.push(p); });
+      restQueue.forEach(p => { if(!nextQueue.includes(p)) nextQueue.push(p); });
       restQueue = nextQueue;
 
       perSetRests.push(restingThisSet);
@@ -544,3 +550,4 @@
 </script>
 </body>
 </html>
+
