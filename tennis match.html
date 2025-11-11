@@ -139,7 +139,7 @@
     const numSets    = parseInt(byId('numSets').value,10);
     const namesRaw   = byId('playerNames').value.trim();
 
-    if(!(numMembers>=4 && numMembers<=20 && numCourts>=1 && numCourts<=5 && numSets>=1 && numSets<=6)){
+    if(!(numMembers>=4 && numMembers<=20 && numCourts>=1 && numCourts<=6 && numSets>=1 && numSets<=6)){
       errEl.textContent = '입력 범위를 확인해 주세요.';
       return;
     }
@@ -347,5 +347,6 @@
 </script>
 </body>
 </html>
+
 
 
