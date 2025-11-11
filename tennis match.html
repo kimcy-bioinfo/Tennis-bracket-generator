@@ -295,7 +295,6 @@
       // 이번 세트 휴식 명단(정렬: 숫자 오름차순)
       const restingThisSet = players
         .filter(p => !participants.includes(p))
-        .sort(nameSort);
       perSetRests.push(restingThisSet);
 
       // 페어 구성(무작위 순서 기반 + 중복 파트너 회피 시도)
@@ -346,6 +345,7 @@
 </script>
 </body>
 </html>
+
 
 
 
