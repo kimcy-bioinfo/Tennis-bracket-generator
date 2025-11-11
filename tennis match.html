@@ -71,15 +71,15 @@
           </div>
         </div>
         <div style="margin-top:12px">
-          <label for="playerNames">선수 이름 (쉼표로 구분하여 입력 또는 빈칸으로 두어 Player 1..N 자동 생성)</label>
-          <textarea id="playerNames" placeholder="Player 1, Player 2, ..."></textarea>
+          <label for="playerNames">선수 이름 (쉼표로 구분하여 입력 또는 빈칸으로 두어 선수 1..N 자동 생성)</label>
+          <textarea id="playerNames" placeholder="선수 1, 선수 2, ..."></textarea>
         </div>
         <div class="btns">
           <button id="btnGen">대진표 생성</button>
           <button class="secondary" id="btnClear">입력 초기화</button>
         </div>
         <div id="errorMessage" class="err"></div>
-        <div class="footer">힌트: “Player 12”처럼 숫자가 포함된 이름은 정렬에 유리합니다.</div>
+        <div class="footer">힌트: “선수 12”처럼 숫자가 포함된 이름은 정렬에 유리합니다.</div>
       </div>
 
       <!-- 결과 -->
@@ -152,7 +152,7 @@
         return;
       }
     }else{
-      players = Array.from({length:numMembers},(_,i)=>`Player ${i+1}`);
+      players = Array.from({length:numMembers},(_,i)=>`선수 ${i+1}`);
     }
 
     // 누적 추적
@@ -347,4 +347,5 @@
 </script>
 </body>
 </html>
+
 
