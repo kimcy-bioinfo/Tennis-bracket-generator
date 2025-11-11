@@ -3,13 +3,14 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>테니스 대진표 생성기 (v1.1) </title>
+<title>테니스 대진표 생성기 (v1.1)</title>
 <style>
   :root{
     --bg:#0b0f19; --card:#141a2a; --muted:#99a3b3; --accent:#5b8cff; --ok:#21c07a; --warn:#ffb454;
     --border:#25304a; --text:#eaf0ff; --text-soft:#c9d4ef;
   }
   *{box-sizing:border-box}
+  html,body{height:100%}
   body{margin:0;background:linear-gradient(180deg,#0b0f19, #0e1322 60%, #11182a);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
   header{max-width:960px;margin:28px auto 12px;padding:0 16px}
   h1{margin:0 0 8px;font-size:28px;letter-spacing:.3px}
@@ -24,7 +25,7 @@
   .btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
   button{background:var(--accent);border:none;color:#fff;border-radius:10px;padding:10px 14px;font-size:14px;cursor:pointer}
   button.secondary{background:#1d2742}
-  button.ghost{background:#0f1525;border:1px solid var(--border);color:var(--text-soft)}
+  button.ghost{background:#0f1525;border:1px solid #2a3a66;color:#cfe0ff}
   button:disabled{opacity:.5;cursor:not-allowed}
   .err{color:#ff6b6b;margin-top:8px;min-height:20px}
   table{width:100%;border-collapse:collapse;margin:10px 0 2px;background:#0f1525;border-radius:10px;overflow:hidden}
@@ -35,25 +36,47 @@
   .muted{color:var(--muted)}
   .hr{height:1px;background:var(--border);margin:14px 0}
   .set-block{}
-  /* 캡처 스테이지: 화면 밖에서 실제 렌더(visibility/opacity 조작 금지) */
+  /* 캡처 스테이지 */
   #captureStage{
     position:absolute; left:-12000px; top:0;
     background:#0b0f19; padding:0; margin:0;
+    width:430px;
   }
   /* 폰 폭 컨테이너 */
   .phoneW{
-    width:430px; /* 일반적인 폰 CSS 폭 기준 (대부분 390~430px 범위) */
+    width:430px;
     margin:0; padding:12px;
     background:#0b0f19;
   }
   .phoneW .card{border-radius:12px}
   @media (max-width:880px){.grid{grid-template-columns:1fr}}
+
+  /* iOS 저장용 오버레이 */
+  .overlay{position:fixed; inset:0; background:rgba(5,8,15,.85); display:none; align-items:center; justify-content:center; padding:16px; z-index:9999}
+  .overlay.active{display:flex}
+  .ov-card{background:#0f1525; border:1px solid #25304a; border-radius:14px; width:min(96vw, 500px); max-height:92vh; display:flex; flex-direction:column}
+  .ov-head{padding:12px 14px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #1b2440}
+  .ov-head b{color:#eaf0ff}
+  .ov-body{padding:12px; overflow:auto}
+  .ov-body img{width:100%; height:auto; display:block; border-radius:10px; background:#0b0f19}
+  .ov-foot{padding:10px 12px; display:flex; gap:8px; border-top:1px solid #1b2440}
+  .ov-foot button{flex:1}
+  .hint{color:#c9d4ef; font-size:12px; margin:8px 0 0}
+  /* 토스트 */
+  .toast{position:fixed; left:50%; transform:translateX(-50%); bottom:18px; background:#141a2a; color:#eaf0ff; border:1px solid #25304a; border-radius:999px; padding:10px 14px; font-size:13px; display:none; z-index:10000}
+  .toast.show{display:block; animation:fade 2.5s ease both}
+  @keyframes fade {
+    0%{opacity:0; transform:translate(-50%, 8px)}
+    10%{opacity:1; transform:translate(-50%, 0)}
+    90%{opacity:1; transform:translate(-50%, 0)}
+    100%{opacity:0; transform:translate(-50%, 8px)}
+  }
 </style>
 </head>
 <body>
   <header>
     <h1>테니스 대진표 생성기</h1>
-    <div class="sub">지식재산처 목요 테니스 모임</div>
+    <div class="sub"> 지식재산처 목요 테니스 모임</div>
   </header>
   <div class="wrap">
     <div class="grid">
@@ -73,17 +96,17 @@
         </div>
         <div style="margin-top:12px">
           <label for="playerNames">멤버 이름</label>
-          <div class="muted" style="font-size:12px">(쉼표로 구분하거나 비우면 자동 생성)</div>
+          <div class="muted" style="font-size:12px">(이름을 쉼표로 구분하여 입력하거나 빈칸으로 두기)</div>
           <textarea id="playerNames" placeholder="선수 1, 선수 2, ..."></textarea>
         </div>
         <div class="btns">
-          <button id="btnGen">대진표 생성</button>
-          <button class="secondary" id="btnClear">입력 초기화</button>
+          <button id="btnGen" type="button">대진표 생성</button>
+          <button class="secondary" id="btnClear" type="button">입력 초기화</button>
         </div>
         <div class="btns">
-          <button class="ghost" id="btnSaveAll" disabled>전체 결과 저장 (참여 요약 포함)</button>
-          <button class="ghost" id="btnSaveNoSummary" disabled>전체 세트 저장</button>
-          <button class="ghost" id="btnSaveSet" disabled>세트 선택 저장</button>
+          <button class="ghost" id="btnSaveAll" type="button" disabled>결과 화면 전체 저장</button>
+          <button class="ghost" id="btnSaveNoSummary" type="button" disabled>모든 세트 결과 저장</button>
+          <button class="ghost" id="btnSaveSet" type="button" disabled>선택 세트 결과 저장</button>
         </div>
         <div id="errorMessage" class="err"></div>
       </div>
@@ -96,7 +119,27 @@
   </div>
 
   <!-- 캡처 스테이지 -->
-  <div id="captureStage"></div>
+  <div id="captureStage" aria-hidden="true"></div>
+
+  <!-- iOS 저장용 오버레이 -->
+  <div class="overlay" id="saveOverlay" role="dialog" aria-modal="true" aria-labelledby="ovTitle">
+    <div class="ov-card">
+      <div class="ov-head">
+        <b id="ovTitle">이미지 미리보기</b>
+        <button class="ghost" id="ovClose" type="button">닫기</button>
+      </div>
+      <div class="ov-body">
+        <img id="ovImg" alt="저장할 이미지 미리보기"/>
+        <div class="hint">iPhone: 이미지 위를 길게 눌러 <b>사진에 저장</b>을 선택하세요.</div>
+      </div>
+      <div class="ov-foot">
+        <button id="ovShare" class="secondary" type="button">공유 시트로 저장</button>
+        <button id="ovOpenTab" type="button">새 탭으로 열기</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">다운로드를 시작합니다…</div>
 
   <!-- html2canvas -->
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" defer></script>
@@ -164,7 +207,7 @@
     let restQueue = [];
     const perSetRests = [];
 
-    // 결과 렌더(세트별) — 기존 구성 유지
+    // 결과 렌더(세트별) 
     const renderSet = (setIdx, courtPairs, restingList)=>{
       const wrap = document.createElement('div');
       wrap.className = 'section set-block';
@@ -224,7 +267,7 @@
 
     const playableSlots = Math.min(numCourts*4, players.length);
     const K = playableSlots - (playableSlots % 4);
-    if(K<4){ errEl.textContent='경기를 구성하기에 선수가 부족합니다.'; return; }
+    if(K<4){ byId('errorMessage').textContent='경기를 구성하기에 선수가 부족합니다.'; return; }
 
     for(let s=1; s<=numSets; s++){
       const order = (function priorityForSet(){
@@ -270,7 +313,7 @@
       participants.forEach(p=>gamesPlayed[p]++);
       pairs.forEach(([a,b])=> previousPairs.add(pairKey(a,b)));
 
-      outEl.appendChild(renderSet(s, courtPairsFlat, restingThisSet));
+      byId('output').appendChild(renderSet(s, courtPairsFlat, restingThisSet));
 
       const nextQueue = [];
       restingThisSet.forEach(p=>{ if(!nextQueue.includes(p)) nextQueue.push(p); });
@@ -280,7 +323,7 @@
       perSetRests.push(restingThisSet);
     }
 
-    // 참여 요약(화면 표시) — id 부여로 선택 제거 가능
+    // 참여 요약(화면 표시)
     {
       const sumCard = document.createElement('div'); sumCard.className='card pad'; sumCard.id='participationSummary';
       const h = document.createElement('div'); h.className='section-title'; h.textContent='참여 요약';
@@ -300,7 +343,7 @@
       });
       t.appendChild(tb);
       sumCard.appendChild(t);
-      outEl.appendChild(sumCard);
+      byId('output').appendChild(sumCard);
     }
 
     // 저장 버튼 활성화
@@ -315,7 +358,7 @@
       saveCloned(clone, '대진표_모든세트');
     };
     byId('btnSaveSet').onclick = ()=>{
-      const maxSet = numSets;
+      const maxSet = document.querySelectorAll('#output .set-block').length;
       const v = prompt(`저장할 세트 번호를 입력하세요 (1~${maxSet})`);
       const idx = parseInt(v,10);
       if(!idx || idx<1 || idx>maxSet) return;
@@ -325,10 +368,18 @@
     };
   };
 
-  // ===== 캡처 유틸 =====
+  // ===== 공통 유틸 =====
   function isIOS() {
     return /iPad|iPhone|iPod/.test(navigator.userAgent) || 
            (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  }
+  function isDesktop(){
+    return !/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  }
+  function toast(msg){
+    const el = byId('toast'); if(!el) return;
+    el.textContent = msg; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+    setTimeout(()=>el.classList.remove('show'), 2500);
   }
 
   function cloneAsPhoneWidth(node){
@@ -344,57 +395,145 @@
 
   async function saveAsPhoneWidth(node, baseName){
     const wrap = cloneAsPhoneWidth(node);
-    await captureAndDownload(wrap, `${baseName}_${new Date().toISOString().slice(0,10)}.png`);
+    await captureAndSave(wrap, `${baseName}_${new Date().toISOString().slice(0,10)}.png`);
   }
-
   async function saveCloned(clonedWrap, baseName){
-    await captureAndDownload(clonedWrap, `${baseName}_${new Date().toISOString().slice(0,10)}.png`);
+    await captureAndSave(clonedWrap, `${baseName}_${new Date().toISOString().slice(0,10)}.png`);
   }
 
-  async function captureAndDownload(target, filename){
+  async function captureAndSave(target, filename){
     if (typeof html2canvas === 'undefined'){
       alert('라이브러리를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
       return;
     }
-    // 강제 폭 설정된 phoneW를 기준으로 캔버스 생성
     const prevScrollY = window.scrollY; window.scrollTo(0,0);
     try{
       const canvas = await html2canvas(target, {
         useCORS:true,
+        allowTaint:true,
         backgroundColor:'#0b0f19',
-        scale: 2, // 고해상도
+        scale: 2,
         windowWidth: target.offsetWidth + 20,
         windowHeight: target.scrollHeight + 20
       });
-      await downloadCanvas(canvas, filename);
-    }catch(e){ console.error(e); alert('이미지 저장 중 오류가 발생했습니다.'); }
-    finally{ window.scrollTo(0, prevScrollY); byId('captureStage').innerHTML=''; }
+
+      let blob = await new Promise(res=>{
+        try{ canvas.toBlob(res, 'image/png'); }catch(e){ res(null); }
+      });
+      if(!blob){
+        try{
+          const dataURL = canvas.toDataURL('image/png');
+          const bin = atob(dataURL.split(',')[1]);
+          const arr = new Uint8Array(bin.length);
+          for(let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
+          blob = new Blob([arr], {type:'image/png'});
+        }catch(e){ console.error('toDataURL fallback 실패', e); }
+      }
+      if(!blob){ alert('이미지 생성에 실패했습니다.'); return; }
+
+      // 1) Desktop 우선: File System Access API
+      if(isDesktop() && 'showSaveFilePicker' in window){
+        try{
+          const handle = await window.showSaveFilePicker({
+            suggestedName: filename,
+            types: [{ description: 'PNG Image', accept: {'image/png':['.png']} }]
+          });
+          const writable = await handle.createWritable();
+          await writable.write(blob);
+          await writable.close();
+          toast('파일로 저장되었습니다.');
+          return;
+        }catch(e){
+          // 사용자가 취소했을 수도 있으니 계속 진행
+        }
+      }
+
+      // 2) Android/지원 브라우저: Web Share
+      const shared = await tryWebShare(blob, filename);
+      if(shared){ toast('공유 시트로 전송했습니다.'); return; }
+
+      // 3) a.download (대부분 데스크탑/안드로이드 Chrome/Edge/Firefox)
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename;
+      try{
+        document.body.appendChild(a); a.click(); a.remove();
+        toast('다운로드를 시작합니다.');
+      }catch(e){
+        // 4) 최후: 새 탭으로 열기(사파리 등)
+        const w = window.open(url, '_blank');
+        if(!w){
+          // 팝업 차단 시 오버레이로 안내
+          openOverlay(url, filename);
+        }
+      }finally{
+        setTimeout(()=>URL.revokeObjectURL(url), 4000);
+      }
+    }catch(e){
+      console.error(e); alert('이미지 저장 중 오류가 발생했습니다.');
+    }finally{
+      window.scrollTo(0, prevScrollY);
+      byId('captureStage').innerHTML='';
+    }
   }
 
-  async function downloadCanvas(canvas, filename){
-    return new Promise((resolve)=>{
-      if(canvas.toBlob){
-        canvas.toBlob((blob)=>{
-          const url = URL.createObjectURL(blob);
-          if(isIOS()){
-            window.open(url,'_blank'); resolve(); return;
-          }
-          const a = document.createElement('a');
-          a.href = url; a.download = filename;
-          document.body.appendChild(a); a.click(); a.remove();
-          URL.revokeObjectURL(url); resolve();
-        }, 'image/png');
-      }else{
-        const dataURL = canvas.toDataURL('image/png');
-        if(isIOS()){
-          window.open(dataURL,'_blank'); resolve(); return;
-        }
-        const a = document.createElement('a');
-        a.href = dataURL; a.download = filename;
-        document.body.appendChild(a); a.click(); a.remove();
-        resolve();
+  async function tryWebShare(blob, filename){
+    try{
+      if(!('share' in navigator)) return false;
+      const file = new File([blob], filename, {type:'image/png', lastModified: Date.now()});
+      if('canShare' in navigator && !navigator.canShare({files:[file]})){
+        return false;
       }
-    });
+      await navigator.share({files:[file], title: filename, text:'대진표 이미지'});
+      return true;
+    }catch(e){ return false; }
+  }
+
+  function openOverlay(objectUrl, filename){
+    const ov = byId('saveOverlay');
+    const img = byId('ovImg');
+    const btnShare = byId('ovShare');
+    const btnOpen = byId('ovOpenTab');
+    const btnClose = byId('ovClose');
+
+    img.src = objectUrl;
+    ov.classList.add('active');
+
+    btnShare.onclick = async ()=>{
+      try{
+        if('share' in navigator){
+          const resp = await fetch(objectUrl);
+          const blob = await resp.blob();
+          const file = new File([blob], filename, {type:'image/png'});
+          if('canShare' in navigator && !navigator.canShare({files:[file]})){
+            alert('공유 시트를 사용할 수 없습니다. 아래 새 탭 열기를 사용해 주세요.');
+            return;
+          }
+          await navigator.share({files:[file], title: filename});
+          closeOverlay();
+        }else{
+          alert('공유 시트를 사용할 수 없습니다. 아래 새 탭 열기를 사용해 주세요.');
+        }
+      }catch(e){
+        alert('공유 시트 호출이 취소되었거나 실패했습니다.');
+      }
+    };
+
+    btnOpen.onclick = ()=>{
+      const a = document.createElement('a');
+      a.href = objectUrl; a.target = '_blank'; a.rel = 'noopener';
+      document.body.appendChild(a); a.click(); a.remove();
+    };
+
+    btnClose.onclick = closeOverlay;
+    ov.addEventListener('click',(e)=>{ if(e.target === ov) closeOverlay(); });
+  }
+
+  function closeOverlay(){
+    const ov = byId('saveOverlay');
+    const img = byId('ovImg');
+    ov.classList.remove('active');
+    img.removeAttribute('src');
   }
 })();
 </script>
