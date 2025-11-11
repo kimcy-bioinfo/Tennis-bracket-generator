@@ -83,8 +83,8 @@
       <!-- 입력 -->
       <div class="card pad">
         <div style="margin-top:12px">
-          <label for="numMembers">멤버 수 (4–20명)</label>
-          <input id="numMembers" type="number" min="4" max="20" placeholder="예: 10"/>
+          <label for="numMembers">멤버 수 (4–24명)</label>
+          <input id="numMembers" type="number" min="4" max="24" placeholder="예: 10"/>
         </div>
         <div style="margin-top:12px">
           <label for="numCourts">코트 수 (1–6면)</label>
@@ -189,7 +189,7 @@
     const numSets    = parseInt(byId('numSets').value,10);
     const namesRaw   = byId('playerNames').value.trim();
 
-    if(!(numMembers>=4 && numMembers<=20 && numCourts>=1 && numCourts<=6 && numSets>=1 && numSets<=10)){
+    if(!(numMembers>=4 && numMembers<=24 && numCourts>=1 && numCourts<=6 && numSets>=1 && numSets<=10)){
       errEl.textContent='입력 범위를 확인해 주세요.'; return;
     }
 
@@ -271,7 +271,8 @@
 
     for(let s=1; s<=numSets; s++){
       const order = (function priorityForSet(){
-        const latestFirst = [...restQueue];
+        //const latestFirst = [...restQueue];
+        const latestFirst = shuffle([...restQueue]);
         const others = players
           .filter(p=>!latestFirst.includes(p))
           .sort((a,b)=>{
@@ -281,7 +282,27 @@
         return [...latestFirst, ...others];
       })();
 
-      const participants = order.slice(0, K);
+      const minG = Math.min(...Object.values(gamesPlayed));
+      const cap1 = minG;       // 최소 게임수
+      const cap2 = minG + 1;   // 허용 상한
+      
+      // 1단계: 현재 최소 게임수(minG)인 선수만으로 채우기
+      let participants = order.filter(p => gamesPlayed[p] === cap1).slice(0, K);
+      
+      // 2단계: 부족하면 minG+1에서 보충
+      if (participants.length < K) {
+        const add = order.filter(p => gamesPlayed[p] === cap2 && !participants.includes(p))
+                         .slice(0, K - participants.length);
+        participants = participants.concat(add);
+      }
+      
+      // 3단계(최후): 그래도 부족하면 나머지에서 채움(불가피할 때만)
+      if (participants.length < K) {
+        const add = order.filter(p => !participants.includes(p)).slice(0, K - participants.length);
+        participants = participants.concat(add);
+      }
+      //const participants = order.slice(0, K);
+      
       const pairs = (function makePairs(participants, prevSet){
         const pool = shuffle([...participants]);
         const pairs = [];
@@ -550,4 +571,5 @@
 </script>
 </body>
 </html>
+
 
