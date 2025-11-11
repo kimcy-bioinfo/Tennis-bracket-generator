@@ -331,7 +331,12 @@
       const t = document.createElement('table');
       t.innerHTML = `<thead><tr><th>#</th><th>선수</th><th>경기수</th><th>휴식세트번호</th></tr></thead>`;
       const tb = document.createElement('tbody');
-      const playersSorted = [...players].sort(nameSort);
+      //const playersSorted = [...players].sort(nameSort);
+      const playersSorted = [...players].sort((a, b) => {
+        const numA = parseInt(a.replace(/[^0-9]/g, '')) || 0;
+        const numB = parseInt(b.replace(/[^0-9]/g, '')) || 0;
+        return numA - numB || a.localeCompare(b);
+      });
       playersSorted.forEach((p,idx)=>{
         const tr = document.createElement('tr');
         const restedSets = perSetRests
