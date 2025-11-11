@@ -1,0 +1,349 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>테니스 대진표 생성기</title>
+<style>
+  :root{
+    --bg:#0b0f19; --card:#141a2a; --muted:#99a3b3; --accent:#5b8cff; --ok:#21c07a; --warn:#ffb454;
+    --border:#25304a; --text:#eaf0ff; --text-soft:#c9d4ef;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(180deg,#0b0f19, #0e1322 60%, #11182a);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
+  header{max-width:960px;margin:28px auto 12px;padding:0 16px}
+  h1{margin:0 0 8px;font-size:28px;letter-spacing:.3px}
+  .sub{color:var(--text-soft);font-size:14px}
+  .wrap{max-width:960px;margin:12px auto 40px;padding:16px}
+  .grid{display:grid;grid-template-columns:1.1fr 2fr;gap:16px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.25)}
+  .pad{padding:18px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  label{font-size:13px;color:var(--text-soft)}
+  input,textarea{width:100%;background:#0f1525;border:1px solid var(--border);color:var(--text);border-radius:10px;padding:10px 12px;font-size:14px;outline:none}
+  textarea{min-height:72px;resize:vertical}
+  .btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+  button{background:var(--accent);border:none;color:#fff;border-radius:10px;padding:10px 14px;font-size:14px;cursor:pointer}
+  button.secondary{background:#1d2742}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .err{color:#ff6b6b;margin-top:8px;min-height:20px}
+  table{width:100%;border-collapse:collapse;margin:10px 0 2px;background:#0f1525;border-radius:10px;overflow:hidden}
+  thead th{background:#152038;color:#cfe0ff;font-weight:600;font-size:13px;padding:10px;border-bottom:1px solid var(--border)}
+  td{padding:10px;border-bottom:1px solid #1b2440;text-align:center}
+  .tag{display:inline-block;background:#182242;border:1px solid #2a3a66;color:#cfe0ff;border-radius:999px;padding:4px 8px;font-size:12px;margin:4px 6px 0 0}
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:#0f1525;color:var(--text-soft);font-size:12px}
+  .ok{color:var(--ok)}
+  .warn{color:var(--warn)}
+  .muted{color:var(--muted)}
+  .section-title{font-weight:600;margin:14px 0 6px}
+  .footer{margin-top:8px;font-size:12px;color:var(--muted)}
+  .hr{height:1px;background:var(--border);margin:14px 0}
+  @media (max-width:880px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+  <header>
+    <h1>테니스 대진표 생성기</h1>
+    <div class="sub">휴식 큐 엄격 적용 · 직전 휴식자는 다음 세트 반드시 참가 · 참여 경기수 균형 · 파트너 중복 회피 시도 + 무작위 배정</div>
+  </header>
+  <div class="wrap">
+    <div class="grid">
+      <!-- 입력 -->
+      <div class="card pad">
+        <div class="row">
+          <div>
+            <label for="numMembers">구성원 수 (4–20명)</label>
+            <input id="numMembers" type="number" min="4" max="20" placeholder="예: 10"/>
+          </div>
+          <div>
+            <label for="numCourts">코트 수 (1–5면)</label>
+            <input id="numCourts" type="number" min="1" max="5" placeholder="예: 3"/>
+          </div>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <div>
+            <label for="numSets">세트 수 (1–6세트)</label>
+            <input id="numSets" type="number" min="1" max="6" placeholder="예: 4"/>
+          </div>
+          <div>
+            <label>&nbsp;</label>
+            <div class="pill"><span>우선순위</span>• 직전 휴식 &rarr; 과거 휴식 순</div>
+          </div>
+        </div>
+        <div style="margin-top:12px">
+          <label for="playerNames">선수 이름 (쉼표로 구분, 비우면 Player 1..N 자동 생성)</label>
+          <textarea id="playerNames" placeholder="Player 1, Player 2, ..."></textarea>
+        </div>
+        <div class="btns">
+          <button id="btnGen">대진표 생성</button>
+          <button class="secondary" id="btnClear">입력 초기화</button>
+        </div>
+        <div id="errorMessage" class="err"></div>
+        <div class="footer">힌트: “Player 12”처럼 숫자가 포함된 이름은 정렬에 유리합니다.</div>
+      </div>
+
+      <!-- 결과 -->
+      <div class="card pad" id="output">
+        <div class="muted">여기에 결과가 표시됩니다.</div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  const byId = (id)=>document.getElementById(id);
+
+  // 이름의 마지막 숫자를 정렬 키로 사용
+  const numFromName = (name)=>{
+    const m = String(name).match(/(\d+)(?!.*\d)/);
+    return m ? parseInt(m[1],10) : Number.POSITIVE_INFINITY;
+  };
+  const nameSort = (a,b)=>{
+    const na = numFromName(a), nb = numFromName(b);
+    if (na!==nb) return na-nb;
+    return a.localeCompare(b);
+  };
+
+  // Fisher–Yates shuffle
+  const shuffle = (arr)=>{
+    const a = [...arr];
+    for(let i=a.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [a[i],a[j]] = [a[j],a[i]];
+    }
+    return a;
+  };
+
+  const pairKey = (a,b)=>{
+    const s = [a,b].sort(nameSort);
+    return s[0] + " | " + s[1];
+  };
+
+  byId('btnClear').onclick = ()=>{
+    byId('numMembers').value = '';
+    byId('numCourts').value = '';
+    byId('numSets').value = '';
+    byId('playerNames').value = '';
+    byId('errorMessage').textContent = '';
+    byId('output').innerHTML = '<div class="muted">여기에 결과가 표시됩니다.</div>';
+  };
+
+  byId('btnGen').onclick = ()=>{
+    const errEl = byId('errorMessage');
+    const outEl = byId('output');
+    errEl.textContent = '';
+    outEl.innerHTML = '';
+
+    const numMembers = parseInt(byId('numMembers').value,10);
+    const numCourts  = parseInt(byId('numCourts').value,10);
+    const numSets    = parseInt(byId('numSets').value,10);
+    const namesRaw   = byId('playerNames').value.trim();
+
+    if(!(numMembers>=4 && numMembers<=20 && numCourts>=1 && numCourts<=5 && numSets>=1 && numSets<=6)){
+      errEl.textContent = '입력 범위를 확인해 주세요.';
+      return;
+    }
+
+    let players = [];
+    if(namesRaw){
+      players = namesRaw.split(',').map(s=>s.trim()).filter(s=>s);
+      if(players.length !== numMembers){
+        errEl.textContent = '입력된 선수 수가 구성원 수와 일치하지 않습니다.';
+        return;
+      }
+    }else{
+      players = Array.from({length:numMembers},(_,i)=>`Player ${i+1}`);
+    }
+
+    // 누적 추적
+    const gamesPlayed = Object.fromEntries(players.map(p=>[p,0])); // 누적 경기수
+    let previousPairs = new Set(); // 과거 파트너
+    let restQueue = [];            // 휴식 큐(세트 종료 후에만 갱신)
+    const perSetRests = [];        // 세트별 휴식 명단 기록
+
+    // 세트용 우선 순위 스냅샷(세트 진행 중 restQueue 변경 금지)
+    const priorityForSet = ()=>{
+      const latestFirst = [...restQueue]; // 직전 휴식자 → 과거 휴식자 순
+      // 나머지 선수는 "적게 뛴 순 + 무작위 tie-break" 후 뒤에 배치
+      const others = players
+        .filter(p=>!latestFirst.includes(p))
+        .sort((a,b)=>{
+          if (gamesPlayed[a]!==gamesPlayed[b]) return gamesPlayed[a]-gamesPlayed[b];
+          // tie-break randomness
+          return Math.random() < 0.5 ? -1 : 1;
+        });
+      return [...latestFirst, ...others];
+    };
+
+    // 이번 세트에서 투입 가능한 인원(코트*4, 4의 배수)
+    const playableSlots = Math.min(numCourts*4, players.length);
+    const K = playableSlots - (playableSlots % 4);
+    if (K < 4){
+      errEl.textContent = '경기를 구성하기에 선수가 부족합니다.';
+      return;
+    }
+
+    // 페어링: 순서 무작위화 + 과거 파트너 회피 시도(불가피하면 허용)
+    function makePairs(participants, previousPairsSet){
+      const pool = shuffle([...participants]); // 무작위 순서
+      const pairs = [];
+      const used = new Set();
+
+      for(let i=0;i<pool.length;i++){
+        const a = pool[i];
+        if(used.has(a)) continue;
+
+        // a와 아직 사용되지 않았고 과거 파트너가 아닌 b 찾기
+        let candIdx = -1;
+        for(let j=i+1;j<pool.length;j++){
+          const b = pool[j];
+          if(used.has(b)) continue;
+          if(!previousPairsSet.has(pairKey(a,b))){
+            candIdx = j; break;
+          }
+        }
+        // 없으면 첫 가용 b
+        if(candIdx === -1){
+          for(let j=i+1;j<pool.length;j++){
+            const b = pool[j];
+            if(!used.has(b)){ candIdx = j; break; }
+          }
+        }
+        if(candIdx !== -1){
+          const b = pool[candIdx];
+          used.add(a); used.add(b);
+          const team = [a,b].sort(nameSort); // 팀 내 숫자 오름차순
+          pairs.push(team);
+        }
+      }
+      return pairs;
+    }
+
+    // 렌더링
+    const renderSet = (setIdx, courtPairs, restingList, playersAll, gamesMap)=>{
+      const wrap = document.createElement('div');
+      wrap.className = 'section';
+      const title = document.createElement('div');
+      title.className = 'section-title';
+      title.innerHTML = `세트 ${setIdx} 결과`;
+      wrap.appendChild(title);
+
+      const tbl = document.createElement('table');
+      const thead = document.createElement('thead');
+      thead.innerHTML = `<tr><th>코트</th><th>팀 1</th><th>팀 2</th></tr>`;
+      tbl.appendChild(thead);
+
+      const tbody = document.createElement('tbody');
+      for(let c=0;c<numCourts;c++){
+        const row = document.createElement('tr');
+        const cellCourt = document.createElement('td');
+        cellCourt.textContent = `코트 ${c+1}`;
+        row.appendChild(cellCourt);
+
+        const cellT1 = document.createElement('td');
+        const cellT2 = document.createElement('td');
+
+        const pair1 = courtPairs[c*2];
+        const pair2 = courtPairs[c*2+1];
+
+        if(pair1 && pair2){
+          cellT1.textContent = `${pair1[0]} & ${pair1[1]}`;
+          cellT2.textContent = `${pair2[0]} & ${pair2[1]}`;
+        }else{
+          cellT1.colSpan = 2;
+          cellT1.textContent = "이 코트는 비어 있습니다";
+          row.appendChild(cellT1);
+          tbody.appendChild(row);
+          continue;
+        }
+        row.appendChild(cellT1);
+        row.appendChild(cellT2);
+        tbody.appendChild(row);
+      }
+      tbl.appendChild(tbody);
+      wrap.appendChild(tbl);
+
+      const restLine = document.createElement('div');
+      restLine.style.marginTop = '6px';
+      restLine.innerHTML = `<span class="muted">휴식 선수:</span> ${
+        restingList.length ? restingList.map(n=>`<span class="tag">${n}</span>`).join('') : '<span class="tag">없음</span>'
+      }`;
+      wrap.appendChild(restLine);
+
+      const stats = document.createElement('div');
+      stats.className = 'footer';
+      const minG = Math.min(...playersAll.map(p=>gamesMap[p]));
+      const maxG = Math.max(...playersAll.map(p=>gamesMap[p]));
+      const balanceClass = (maxG-minG<=1) ? 'ok' : 'warn';
+      stats.innerHTML = `참여 균형: <span class="${balanceClass}">${minG}–${maxG}</span> 경기 / 선수`;
+      wrap.appendChild(stats);
+
+      const hr = document.createElement('div'); hr.className='hr';
+      wrap.appendChild(hr);
+
+      return wrap;
+    };
+
+    // ====== 세트 루프 ======
+    for (let s=1; s<=numSets; s++){
+      // 세트용 우선순위 스냅샷(큐는 여기서 읽기만)
+      const order = priorityForSet();
+
+      // 참가자 선정: 우선순위 K명 먼저 고른 뒤, "참가자 내부 순서 자체는 랜덤"을 위해 전체를 한 번 섞어 페어링 단계에 전달
+      const participants = order.slice(0, K);
+      const participantsShuffled = shuffle(participants);
+
+      // 이번 세트 휴식 명단(정렬: 숫자 오름차순)
+      const restingThisSet = players
+        .filter(p => !participants.includes(p))
+        .sort(nameSort);
+      perSetRests.push(restingThisSet);
+
+      // 페어 구성(무작위 순서 기반 + 중복 파트너 회피 시도)
+      const pairs = makePairs(participantsShuffled, previousPairs);
+
+      // 코트 배정도 다양화를 위해 페어 리스트를 섞은 뒤, 코트당 2팀씩 매핑
+      const courtPairsFlat = shuffle(pairs);
+
+      // 경기수 반영
+      participants.forEach(p=>gamesPlayed[p]++);
+
+      // 과거 페어 기록
+      pairs.forEach(([a,b])=> previousPairs.add(pairKey(a,b)));
+
+      // 렌더
+      outEl.appendChild(renderSet(s, courtPairsFlat, restingThisSet, players, gamesPlayed));
+
+      // 다음 세트용 휴식 큐 재생성(세트 종료 후에만)
+      const nextQueue = [];
+      const pushUnique = (arr, item)=>{ if(!arr.includes(item)) arr.push(item); };
+      restingThisSet.forEach(p=>pushUnique(nextQueue, p));               // 직전 휴식자 우선
+      restQueue.forEach(p=>{ if(!nextQueue.includes(p)) nextQueue.push(p); }); // 과거 휴식자
+      restQueue = nextQueue;
+    }
+
+    // 참여 요약
+    const sumCard = document.createElement('div'); sumCard.className='card pad';
+    const h = document.createElement('div'); h.className='section-title'; h.textContent='참여 요약';
+    sumCard.appendChild(h);
+    const t = document.createElement('table');
+    t.innerHTML = `<thead><tr><th>#</th><th>선수</th><th>경기수</th><th>휴식세트번호</th></tr></thead>`;
+    const tb = document.createElement('tbody');
+    const playersSorted = [...players].sort(nameSort);
+    playersSorted.forEach((p,idx)=>{
+      const tr = document.createElement('tr');
+      const restedSets = perSetRests
+        .map((arr,i)=>arr.includes(p)?(i+1):null)
+        .filter(v=>v!==null)
+        .join(', ');
+      tr.innerHTML = `<td>${idx+1}</td><td>${p}</td><td>${gamesPlayed[p]}</td><td>${restedSets || '-'}</td>`;
+      tb.appendChild(tr);
+    });
+    t.appendChild(tb);
+    sumCard.appendChild(t);
+    outEl.appendChild(sumCard);
+  };
+})();
+</script>
+</body>
+</html>
