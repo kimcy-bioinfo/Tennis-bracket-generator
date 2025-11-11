@@ -36,7 +36,7 @@
   .warn{color:var(--warn)}
   .muted{color:var(--muted)}
   .section-title{font-weight:600;margin:14px 0 6px}
-  .footer{margin-top:8px;font-size:12px;color:var(--muted)}
+  .footer{margin-top:8px;margin-bottom:4px;font-size:12px;color:var(--muted)}
   .hr{height:1px;background:var(--border);margin:14px 0}
   @media (max-width:880px){.grid{grid-template-columns:1fr}}
 </style>
@@ -50,28 +50,27 @@
     <div class="grid">
       <!-- 입력 -->
       <div class="card pad">
-        <div class="row">
+        <div style="margin-top:12px">
           <div>
             <label for="numMembers">구성원 수 (4–20명)</label>
             <input id="numMembers" type="number" min="4" max="20" placeholder="예: 10"/>
           </div>
+        </div>
+        <div style="margin-top:12px">
           <div>
             <label for="numCourts">코트 수 (1–6면)</label>
             <input id="numCourts" type="number" min="1" max="6" placeholder="예: 3"/>
           </div>
         </div>
-        <div class="row" style="margin-top:12px">
+        <div style="margin-top:12px">
           <div>
             <label for="numSets">세트 수 (1–6세트)</label>
             <input id="numSets" type="number" min="1" max="6" placeholder="예: 4"/>
           </div>
-          <div>
-            <label>&nbsp;</label>
-            <div class="pill"><span>우선순위</span>• 직전 휴식 &rarr; 과거 휴식 순</div>
-          </div>
         </div>
         <div style="margin-top:12px">
-          <label for="playerNames">선수 이름 (쉼표로 구분하여 입력 또는 빈칸으로 두어 선수 1..N 자동 생성)</label>
+          <label for="playerNames">선수 이름 </label>
+          <div class="footer">(쉼표로 구분하여 입력 또는 빈칸으로 두어 선수 1..N 자동 생성)</div>
           <textarea id="playerNames" placeholder="선수 1, 선수 2, ..."></textarea>
         </div>
         <div class="btns">
@@ -347,6 +346,7 @@
 </script>
 </body>
 </html>
+
 
 
 
